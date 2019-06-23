@@ -81,13 +81,22 @@ class connection_service
     // begin asynchronous operation
     impl.start(this->get_io_service());
 
-    boost::asio::detail::async_result_init<
-        MessageHandler, void(boost::system::error_code, message)>
-        init(BOOST_ASIO_MOVE_CAST(MessageHandler)(handler));
-    detail::async_send_op<typename boost::asio::handler_type<
-        MessageHandler, void(boost::system::error_code, message)>::type>(
+    #if BOOST_VERSION >= 106700
+    boost::asio::async_completion
+#else
+    boost::asio::detail::async_result_init
+#endif
+        <MessageHandler, void(boost::system::error_code, message)>
+            init(handler);
+
+    detail::async_send_op<BOOST_ASIO_HANDLER_TYPE(
+        MessageHandler, void(boost::system::error_code, message))>(
         this->get_io_service(),
+#if BOOST_VERSION >= 106700
+        BOOST_ASIO_MOVE_CAST(MessageHandler)(init.completion_handler))(impl, m);
+#else
         BOOST_ASIO_MOVE_CAST(MessageHandler)(init.handler))(impl, m);
+#endif
 
     return init.result.get();
   }

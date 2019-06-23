@@ -65,18 +65,29 @@ class queue {
 
   template <typename MessageHandler>
   inline BOOST_ASIO_INITFN_RESULT_TYPE(MessageHandler,
-                                       void(boost::system::error_code,
+                                             void(boost::system::error_code,
                                             message_type))
       async_pop(BOOST_ASIO_MOVE_ARG(MessageHandler) h) {
+
+#if BOOST_VERSION >= 106700
+    typedef ::boost::asio::async_completion<
+        MessageHandler, void(boost::system::error_code, message_type)>
+        init_type;
+#else
     typedef ::boost::asio::detail::async_result_init<
         MessageHandler, void(boost::system::error_code, message_type)>
         init_type;
+#endif
 
     mutex_type::scoped_lock lock(mutex);
     if (messages.empty()) {
-      init_type init(BOOST_ASIO_MOVE_CAST(MessageHandler)(h));
+      init_type init(h);
 
+#if BOOST_VERSION >= 106700
+      handlers.push_back(init.completion_handler);
+#else
       handlers.push_back(init.handler);
+#endif
 
       lock.unlock();
 
@@ -88,9 +99,14 @@ class queue {
 
       lock.unlock();
 
-      init_type init(BOOST_ASIO_MOVE_CAST(MessageHandler)(h));
+      init_type init(h);
 
-      io.post(closure(init.handler, m));
+      io.post(closure(
+#if BOOST_VERSION >= 106700
+          BOOST_ASIO_MOVE_CAST(handler_type)(init.completion_handler), m));
+#else
+          BOOST_ASIO_MOVE_CAST(handler_type)(init.handler), m));
+#endif
 
       return init.result.get();
     }

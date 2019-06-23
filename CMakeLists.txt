@@ -65,6 +65,8 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include)
 # Tests
 enable_testing()
 
+cmake_policy(SET CMP0023 NEW)
+
 add_executable(dbustests "test/avahi.cpp" "test/message.cpp" "test/error.cpp" "test/dbusPropertiesServer.cpp")
 
 ##############
@@ -72,6 +74,8 @@ add_executable(dbustests "test/avahi.cpp" "test/message.cpp" "test/error.cpp" "t
 hunter_add_package(GTest)
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
+
+find_package(Threads REQUIRED)
 
 if (${HUNTER_ENABLED})
     find_package(GMock CONFIG REQUIRED)
